@@ -82,7 +82,8 @@ export namespace ApplicationProps {
             config: {
                 applicationName: 'Eclipse Theia',
                 defaultTheme: 'dark',
-                defaultIconTheme: 'none'
+                defaultIconTheme: 'none',
+                securityWarnings: true,
             }
         },
         generator: {
@@ -121,6 +122,13 @@ export interface FrontendApplicationConfig extends ApplicationConfig {
      * The name of the application. `Eclipse Theia` by default.
      */
     readonly applicationName: string;
+
+    /**
+     * Control if security checks will be bound and executed in your application.
+     *
+     * Defaults to `true`.
+     */
+    readonly securityWarnings?: boolean
 
     /**
      * Electron specific configuration.

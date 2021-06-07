@@ -19,6 +19,7 @@ import '../../../src/main/browser/style/index.css';
 import '../../../src/main/browser/style/comments.css';
 
 import { ContainerModule } from '@theia/core/shared/inversify';
+import { FrontendApplicationConfigProvider } from '@theia/core/lib/browser/frontend-application-config-provider';
 import {
     FrontendApplicationContribution, WidgetFactory, bindViewContribution,
     ViewContainerIdentifier, ViewContainer, createTreeContainer, TreeImpl, TreeWidget, TreeModelImpl, LabelProviderContribution
@@ -75,6 +76,9 @@ import { CustomEditorWidgetFactory } from '../browser/custom-editors/custom-edit
 import { CustomEditorWidget } from './custom-editors/custom-editor-widget';
 import { CustomEditorService } from './custom-editors/custom-editor-service';
 import { UndoRedoService } from './custom-editors/undo-redo-service';
+import { WebviewGuard } from './webview/webview-guard';
+
+const frontendConfig = FrontendApplicationConfigProvider.get();
 
 export default new ContainerModule((bind, unbind, isBound, rebind) => {
 
@@ -158,6 +162,10 @@ export default new ContainerModule((bind, unbind, isBound, rebind) => {
             return child.get(TreeWidget);
         }
     })).inSingletonScope();
+
+    if (frontendConfig.securityWarnings) {
+        bind(WebviewGuard).toSelf().inSingletonScope();
+    }
 
     bindWebviewPreferences(bind);
     bind(WebviewEnvironment).toSelf().inSingletonScope();

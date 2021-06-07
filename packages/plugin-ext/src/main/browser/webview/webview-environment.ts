@@ -14,16 +14,20 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
-import { injectable, inject, postConstruct } from '@theia/core/shared/inversify';
+import { injectable, inject, postConstruct, optional } from '@theia/core/shared/inversify';
 import { Endpoint } from '@theia/core/lib/browser/endpoint';
 import { Deferred } from '@theia/core/lib/common/promise-util';
 import { EnvVariablesServer } from '@theia/core/lib/common/env-variables';
 import URI from '@theia/core/lib/common/uri';
 import { WebviewExternalEndpoint } from '../../common/webview-protocol';
 import { environment } from '@theia/core/shared/@theia/application-package/lib/environment';
+import { WebviewGuard } from './webview-guard';
 
 @injectable()
 export class WebviewEnvironment {
+
+    @inject(WebviewGuard) @optional()
+    protected webviewGuard?: WebviewGuard;
 
     @inject(EnvVariablesServer)
     protected readonly environments: EnvVariablesServer;
@@ -41,6 +45,9 @@ export class WebviewEnvironment {
                 endpointPattern = variable && variable.value || WebviewExternalEndpoint.defaultPattern;
             }
             const { host } = new Endpoint();
+            if (this.webviewGuard) {
+                await this.webviewGuard.onSetHostPattern(endpointPattern);
+            }
             this.externalEndpointHost.resolve(endpointPattern.replace('{{hostname}}', host));
         } catch (e) {
             this.externalEndpointHost.reject(e);

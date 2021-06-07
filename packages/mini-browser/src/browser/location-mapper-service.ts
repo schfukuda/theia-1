@@ -14,12 +14,13 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
-import { inject, injectable, named } from '@theia/core/shared/inversify';
+import { inject, injectable, named, optional } from '@theia/core/shared/inversify';
 import URI from '@theia/core/lib/common/uri';
 import { Endpoint } from '@theia/core/lib/browser';
 import { MaybePromise, Prioritizeable } from '@theia/core/lib/common/types';
 import { ContributionProvider } from '@theia/core/lib/common/contribution-provider';
 import { MiniBrowserEnvironment } from './environment/mini-browser-environment';
+import { MiniBrowserGuard } from './mini-browser-guard';
 
 /**
  * Contribution for the `LocationMapperService`.
@@ -128,14 +129,17 @@ export class LocationWithoutSchemeMapper implements LocationMapper {
 @injectable()
 export class FileLocationMapper implements LocationMapper {
 
+    @inject(MiniBrowserGuard) @optional()
+    protected miniBrowserGuard?: MiniBrowserGuard;
+
     @inject(MiniBrowserEnvironment)
-    protected readonly miniBrowserEnvironment: MiniBrowserEnvironment;
+    protected miniBrowserEnvironment: MiniBrowserEnvironment;
 
     canHandle(location: string): MaybePromise<number> {
         return location.startsWith('file://') ? 1 : 0;
     }
 
-    map(location: string): MaybePromise<string> {
+    async map(location: string): Promise<string> {
         const uri = new URI(location);
         if (uri.scheme !== 'file') {
             throw new Error(`Only URIs with 'file' scheme can be mapped to an URL. URI was: ${uri}.`);
@@ -143,6 +147,9 @@ export class FileLocationMapper implements LocationMapper {
         let rawLocation = uri.path.toString();
         if (rawLocation.charAt(0) === '/') {
             rawLocation = rawLocation.substr(1);
+        }
+        if (this.miniBrowserGuard) {
+            await this.miniBrowserGuard.onFileLocationMap(rawLocation);
         }
         return this.miniBrowserEnvironment.getRandomEndpoint().getRestUrl().resolve(rawLocation).toString();
     }

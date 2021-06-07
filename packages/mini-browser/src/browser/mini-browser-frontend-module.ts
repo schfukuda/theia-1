@@ -18,6 +18,8 @@ import '../../src/browser/style/index.css';
 
 import { ContainerModule } from '@theia/core/shared/inversify';
 import URI from '@theia/core/lib/common/uri';
+import { FrontendApplicationConfigProvider } from '@theia/core/lib/browser/frontend-application-config-provider';
+import { createPreferenceProxy, PreferenceService, PreferenceContribution } from '@theia/core/lib/browser';
 import { OpenHandler } from '@theia/core/lib/browser/opener-service';
 import { WidgetFactory } from '@theia/core/lib/browser/widget-manager';
 import { bindContributionProvider } from '@theia/core/lib/common/contribution-provider';
@@ -39,8 +41,22 @@ import {
     LocationMapper,
     LocationWithoutSchemeMapper,
 } from './location-mapper-service';
+import { MiniBrowserPreferences, MiniBrowserPreferencesSchema } from './mini-browser-preferences';
+import { MiniBrowserGuard } from './mini-browser-guard';
+import { MiniBrowserConfiguration } from './mini-browser-configuration';
+
+const frontendConfig = FrontendApplicationConfigProvider.get();
 
 export default new ContainerModule(bind => {
+    bind<MiniBrowserConfiguration>(MiniBrowserConfiguration).toConstantValue({});
+    bind(PreferenceContribution).toConstantValue({ schema: MiniBrowserPreferencesSchema });
+    bind(MiniBrowserPreferences).toDynamicValue(
+        ctx => createPreferenceProxy(ctx.container.get(PreferenceService), MiniBrowserPreferencesSchema)
+    ).inSingletonScope();
+
+    if (frontendConfig.securityWarnings) {
+        bind(MiniBrowserGuard).toSelf().inSingletonScope();
+    }
 
     bind(MiniBrowserContent).toSelf();
     bind(MiniBrowserContentFactory).toFactory(context => (props: MiniBrowserProps) => {
@@ -77,5 +93,7 @@ export default new ContainerModule(bind => {
     bind(LocationMapper).toService(LocationWithoutSchemeMapper);
     bind(LocationMapperService).toSelf().inSingletonScope();
 
-    bind(MiniBrowserService).toDynamicValue(context => WebSocketConnectionProvider.createProxy(context.container, MiniBrowserServicePath)).inSingletonScope();
+    bind(MiniBrowserService).toDynamicValue(
+        ctx => WebSocketConnectionProvider.createProxy(ctx.container, MiniBrowserServicePath)
+    ).inSingletonScope();
 });
