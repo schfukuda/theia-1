@@ -16,6 +16,7 @@
 
 import { Endpoint, FrontendApplicationContribution } from '@theia/core/lib/browser';
 import { EnvVariablesServer } from '@theia/core/lib/common/env-variables';
+import { environment } from '@theia/core/shared/@theia/application-package/lib/environment';
 import { inject, injectable, optional, postConstruct } from '@theia/core/shared/inversify';
 import { v4 } from 'uuid';
 import { MiniBrowserEndpoint } from '../../common/mini-browser-endpoint';
@@ -42,8 +43,7 @@ export class MiniBrowserEnvironment implements FrontendApplicationContribution {
 
     @postConstruct()
     protected postConstruct(): void {
-        this._hostPatternPromise = this.environment.getValue(MiniBrowserEndpoint.HOST_PATTERN_ENV)
-            .then(envVar => envVar?.value || MiniBrowserEndpoint.HOST_PATTERN_DEFAULT)
+        this._hostPatternPromise = this.getHostPattern()
             .then(pattern => this.miniBrowserConfiguration.hostPattern = pattern);
         if (this.miniBrowserGuard) {
             this._hostPatternPromise
@@ -66,6 +66,13 @@ export class MiniBrowserEnvironment implements FrontendApplicationContribution {
 
     getRandomEndpoint(): Endpoint {
         return this.getEndpoint(v4());
+    }
+
+    protected async getHostPattern(): Promise<string> {
+        return environment.electron.is()
+            ? MiniBrowserEndpoint.HOST_PATTERN_DEFAULT
+            : this.environment.getValue(MiniBrowserEndpoint.HOST_PATTERN_ENV)
+                .then(envVar => envVar?.value || MiniBrowserEndpoint.HOST_PATTERN_DEFAULT);
     }
 
     protected getDefaultHostname(): string {
